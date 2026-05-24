@@ -4,23 +4,31 @@ import "fmt"
 
 func main() {
     // read_tensors()
-    input := "Hello world, it's 42 degrees!"
+    input := "Hi, today is quite rainy isnt it?"
 
     // Tokenizer START
     Vocab,ReverseVocab,MergesMap := LoadTokenizerMetadata()
    
-    tokens := Pretokenize(input,)
+    tokens := Pretokenize(input)
 
     encodedIds  := PerformBPE(tokens,Vocab,MergesMap)
     // Tokenizer END
 
-    Decode(encodedIds,ReverseVocab)
-    // fmt.Println(decodedString)
-
     tensors := ReadTensors()
+    unicodeToByteMap := GetUnicodeToByteMap()
 
-    fmt.Println(len(tensors["model.embed_tokens.weight"].Data))
-    fmt.Println(tensors["model.embed_tokens.weight"].Shape)
-    fmt.Println(tensors["model.embed_tokens.weight"].Data[0:5] )
-    
+    for count := 0; count < 10; count++ {
+        nextTokenID := ForwardPass(tensors, ReverseVocab, encodedIds)
+        
+        if nextTokenID == 0 || nextTokenID == 2 {
+            break
+        }
+
+        nextWord := Decode(int(nextTokenID), ReverseVocab, unicodeToByteMap)
+        fmt.Print(nextWord)
+
+        encodedIds = append(encodedIds, nextTokenID)
+    }
+        
+    // fmt.Println("nextWord:", nextWord)
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"os"
-	"strings"
 )
 
 const TOKENIZER_FILEPATH =  MODEL_PATH + "//tokenizer.json"
@@ -41,21 +40,34 @@ func LoadTokenizerMetadata() (Vocab map[string]int, ReverseVocab map[int]string,
 	return metadata.Model.Vocab, reverseVocab, mergesMap
 }
 
-
-func Decode(encodedIds []int,ReverseVocab map[int]string) string{
-	var result string
-
-    for _, id := range encodedIds {
-        token := ReverseVocab[id]
-		
-		// TO DO: This can be ehanced
-        result += strings.ReplaceAll(token, "Ġ", " ")
+func GetUnicodeToByteMap() map[rune]byte {
+    forward := GetByteToUnicodeMap()
+    reverse := make(map[rune]byte, len(forward))
+    for b, s := range forward {
+        r := []rune(s)[0]
+        reverse[r] = b
     }
-    return result
+    return reverse
 }
 
-func PerformBPE(PretokenizedStrings []string,Vocab map[string]int,MergesMap map[string]int) []int {
-	var tokenIDs []int
+
+func Decode(encodedId int, ReverseVocab map[int]string,UnicodeToByteMap map[rune]byte) string {
+    token := ReverseVocab[encodedId]
+    
+    // convert each unicode character back to its original byte
+    // uToB := GetUnicodeToByteMap()
+    var bytes []byte
+    for _, r := range token {
+        if b, ok := UnicodeToByteMap[r]; ok {
+            bytes = append(bytes, b)
+        }
+    }
+    
+    return string(bytes)
+}
+
+func PerformBPE(PretokenizedStrings []string,Vocab map[string]int,MergesMap map[string]int) []int64 {
+	var tokenIDs []int64
 
 	for _,preString := range PretokenizedStrings {
 		var parts []string
@@ -93,7 +105,7 @@ func PerformBPE(PretokenizedStrings []string,Vocab map[string]int,MergesMap map[
 
         for _, p := range parts {
             if id, ok := Vocab[p]; ok {
-                tokenIDs = append(tokenIDs, id)
+                tokenIDs = append(tokenIDs,int64( id))
             }
         }
 	}
